@@ -277,6 +277,7 @@ body {
 .auth-link {
   color: var(--nu-gold);
   text-decoration: none;
+  width: 90px;
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.3s;
@@ -294,6 +295,7 @@ body {
 
 .auth-link.register {
   background: var(--nu-gold);
+  width: 101px; 
   color: var(--nu-blue);
   font-weight: 600;
   padding: 0.5rem 1.2rem;

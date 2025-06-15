@@ -8,6 +8,8 @@ import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import { CartProvider } from './context/CartContext';
+
 
 
 const routes = [

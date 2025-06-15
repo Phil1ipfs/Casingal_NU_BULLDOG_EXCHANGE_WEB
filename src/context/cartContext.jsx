@@ -1,8 +1,10 @@
 // src/context/cartContext.jsx
-import React, { useState, useEffect, useContext } from 'react';
-import { CartContext } from './CartContext';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import uniforms from '../data/uniform';
 import schoolMerch from '../data/schoolMerch';
+
+// Create the context
+const CartContext = createContext();
 
 // Combine all products for cart lookup
 const allProducts = [...uniforms, ...schoolMerch];
