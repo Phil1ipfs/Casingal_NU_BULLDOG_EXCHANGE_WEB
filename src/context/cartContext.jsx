@@ -1,13 +1,11 @@
-// src/context/CartContext.js
-import React, { createContext, useState, useEffect, useContext } from 'react';
+// src/context/cartContext.jsx
+import React, { useState, useEffect, useContext } from 'react';
+import { CartContext } from './CartContext';
 import uniforms from '../data/uniform';
 import schoolMerch from '../data/schoolMerch';
 
 // Combine all products for cart lookup
 const allProducts = [...uniforms, ...schoolMerch];
-
-// Create context
-export const CartContext = createContext();
 
 // Create provider component
 export const CartProvider = ({ children }) => {
