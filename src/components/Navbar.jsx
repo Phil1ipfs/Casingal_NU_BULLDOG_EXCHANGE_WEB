@@ -1,395 +1,294 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FaHome, 
-  FaTshirt, 
-  FaShoppingBag, 
-  FaShoppingCart, 
-  FaUser,
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+  FaHome,
+  FaTshirt,
+  FaShoppingBag,
+  FaShoppingCart,
   FaSignOutAlt,
   FaStore,
   FaSearch,
   FaTimes,
   FaBars,
   FaHeart,
+  FaRegHeart,
   FaClipboardList,
-  FaCog,
-  FaQuestionCircle,
-  FaBell,
   FaUserCircle,
   FaChevronDown,
-  FaPhoneAlt,
-  FaMapMarkerAlt,
-  FaEnvelope
 } from 'react-icons/fa';
 import logo from '../assets/nubdexchange_logo.png';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 import SearchBar from './SearchBar';
+
+const NAV_LINKS = [
+  { to: '/', label: 'Home', icon: FaHome, end: true },
+  { to: '/browse', label: 'Browse', icon: FaStore },
+  { to: '/section/uniforms', label: 'Uniforms', icon: FaTshirt },
+  { to: '/section/school-merch', label: 'Merchandise', icon: FaShoppingBag },
+];
+
+const getInitials = (name = '') =>
+  name
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('') || 'NU';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
   const { cartCount } = useCart();
-  
+  const { favorites } = useFavorites();
+
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  
+
   const userMenuRef = useRef(null);
-  
+
+  // Re-read the signed-in user on every navigation (login/logout happen on other pages).
   useEffect(() => {
     const savedUser = localStorage.getItem('nuUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
-    // Close dropdowns when clicking outside
+    setUser(savedUser ? JSON.parse(savedUser) : null);
+    setMobileMenuOpen(false);
+    setSearchOpen(false);
+    setUserDropdownOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 8);
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserDropdownOpen(false);
       }
     };
-    
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setUserDropdownOpen(false);
+        setMobileMenuOpen(false);
+        setSearchOpen(false);
+      }
+    };
+    const handleResize = () => {
+      if (window.innerWidth > 900) setMobileMenuOpen(false);
+      if (window.innerWidth > 1200) setSearchOpen(false);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize);
     document.addEventListener('mousedown', handleClickOutside);
-    
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [location.pathname]);
-  
+  }, []);
+
+  // Lock page scroll while the mobile drawer is open.
+  useEffect(() => {
+    document.body.classList.toggle('no-scroll', mobileMenuOpen);
+    return () => document.body.classList.remove('no-scroll');
+  }, [mobileMenuOpen]);
+
   const handleLogout = () => {
     localStorage.removeItem('nuUser');
     setUser(null);
     navigate('/login');
   };
-  
-  const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(path);
-  };
-  
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
     if (searchOpen) setSearchOpen(false);
   };
-  
+
   const toggleSearch = () => {
     setSearchOpen(!searchOpen);
     if (mobileMenuOpen) setMobileMenuOpen(false);
   };
-  
-  const toggleUserDropdown = () => {
-    setUserDropdownOpen(!userDropdownOpen);
-  };
 
-  // Check if we're on mobile view based on window width
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth <= 768);
-      // Close mobile menu and search if resizing to desktop
-      if (window.innerWidth > 768) {
-        setMobileMenuOpen(false);
-        setSearchOpen(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const firstName = user?.name?.split(' ')[0];
 
   return (
     <>
-      <nav className={`bulldogs-navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-container">
-          <div className="navbar-logo">
-            <Link to="/">
-              <img src={logo} alt="NU Bulldogs Exchange" />
-            </Link>
+      <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
+        <div className="container site-header__inner">
+          <Link to="/" className="brand" aria-label="NU Bulldog Exchange home">
+            <img src={logo} alt="" className="brand__logo" />
+            <span className="brand__text">
+              <strong>NU Bulldog</strong>
+              <span>Exchange</span>
+            </span>
+          </Link>
+
+          <nav className="main-nav" aria-label="Primary">
+            {NAV_LINKS.map((link) => (
+              <NavLink key={link.to} to={link.to} end={link.end} className="main-nav__link">
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="site-header__search">
+            <SearchBar variant="nav" />
           </div>
-          
-          <div className="navbar-main">
-            <div className="navbar-links">
-              <Link to="/" className={isActive('/') && !location.pathname.includes('section') ? 'active' : ''}>
-                <FaStore className="nav-icon" />
-                <span>Shop</span>
-              </Link>
-              
-              <div className="has-mega-menu">
-                <Link to="/section/uniforms" className={isActive('/section/uniforms') ? 'active' : ''}>
-                  <FaTshirt className="nav-icon" />
-                  <span>Uniforms</span>
-                </Link>
-                
-                <div className="mega-menu-wrapper">
-                  <div className="mega-menu">
-                    <div className="mega-menu-column">
-                      <h3 className="mega-menu-title">Academic Programs</h3>
-                      <div className="mega-menu-links">
-                        <Link to="/section/uniforms?program=nursing" className="mega-menu-link">Nursing Uniforms</Link>
-                        <Link to="/section/uniforms?program=hrm" className="mega-menu-link">HRM Uniforms</Link>
-                        <Link to="/section/uniforms?program=engineering" className="mega-menu-link">Engineering Uniforms</Link>
-                        <Link to="/section/uniforms?program=education" className="mega-menu-link">Education Uniforms</Link>
-                        <Link to="/section/uniforms?program=business" className="mega-menu-link">Business Uniforms</Link>
-                      </div>
-                    </div>
-                    <div className="mega-menu-column">
-                      <h3 className="mega-menu-title">Uniform Types</h3>
-                      <div className="mega-menu-links">
-                        <Link to="/section/uniforms?type=daily" className="mega-menu-link">Daily Wear</Link>
-                        <Link to="/section/uniforms?type=formal" className="mega-menu-link">Formal Events</Link>
-                        <Link to="/section/uniforms?type=pe" className="mega-menu-link">PE Uniforms</Link>
-                        <Link to="/section/uniforms?type=clinical" className="mega-menu-link">Clinical Practice</Link>
-                        <Link to="/section/uniforms?type=internship" className="mega-menu-link">Internship Attire</Link>
-                      </div>
-                    </div>
-                    <div className="mega-menu-column">
-                      <div className="mega-menu-featured">
-                        <img src="https://scontent-mnl3-1.xx.fbcdn.net/v/t39.30808-6/469958669_1312994066808730_5405078896215908282_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=f727a1&_nc_ohc=cUjyjAvusboQ7kNvwGubKkf&_nc_oc=AdmzYeE9Vor3uJkRbQsESiicyxnZpdC4mCLswZLFrJJGvRITqPSZqj-sB4NpV3IRL9U&_nc_zt=23&_nc_ht=scontent-mnl3-1.xx&_nc_gid=nru5vTQV4HRgD1_kM_cPQQ&oh=00_AfGZWF22o3t9-d1tslRAVIUBbu0Q-dVHq0vII4r1piQgaQ&oe=6814B2F1" alt="Featured Uniform" />
-                        <h4>New Collection 2025</h4>
-                        <p>Discover our latest uniform designs with improved comfort and durability</p>
-                        <Link to="/section/uniforms?collection=new" className="mega-menu-link">Shop New Arrivals →</Link>
-                      </div>
-                    </div>
+
+          <div className="site-header__actions">
+            <button
+              type="button"
+              className="header-icon-btn search-toggle"
+              onClick={toggleSearch}
+              aria-label={searchOpen ? 'Close search' : 'Open search'}
+              aria-expanded={searchOpen}
+            >
+              {searchOpen ? <FaTimes aria-hidden="true" /> : <FaSearch aria-hidden="true" />}
+            </button>
+
+            <NavLink to="/wishlist" className="header-icon-btn hide-xs" aria-label={`Saved items (${favorites.length})`}>
+              <FaRegHeart aria-hidden="true" />
+              {favorites.length > 0 && <span className="count-badge count-badge--muted">{favorites.length}</span>}
+            </NavLink>
+
+            <NavLink to="/cart" className="header-icon-btn" aria-label={`Cart (${cartCount} items)`}>
+              <FaShoppingCart aria-hidden="true" />
+              {cartCount > 0 && <span className="count-badge">{cartCount}</span>}
+            </NavLink>
+
+            {user ? (
+              <div className="user-menu" ref={userMenuRef}>
+                <button
+                  type="button"
+                  className="user-menu__trigger"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  aria-haspopup="menu"
+                  aria-expanded={userDropdownOpen}
+                >
+                  <span className="avatar avatar--sm" aria-hidden="true">{getInitials(user.name)}</span>
+                  <span className="user-menu__name">{firstName}</span>
+                  <FaChevronDown className="user-menu__chevron" aria-hidden="true" />
+                </button>
+                <div className={`dropdown ${userDropdownOpen ? 'is-open' : ''}`} role="menu">
+                  <div className="dropdown__header">
+                    <strong>{user.name}</strong>
+                    <span>{user.email}</span>
                   </div>
+                  <Link to="/profile" className="dropdown__item" role="menuitem">
+                    <FaUserCircle aria-hidden="true" /> My Profile
+                  </Link>
+                  <Link to="/profile" className="dropdown__item" role="menuitem">
+                    <FaClipboardList aria-hidden="true" /> My Orders
+                  </Link>
+                  <Link to="/wishlist" className="dropdown__item" role="menuitem">
+                    <FaHeart aria-hidden="true" /> Saved Items
+                  </Link>
+                  <div className="dropdown__divider" />
+                  <button type="button" className="dropdown__item dropdown__item--danger" role="menuitem" onClick={handleLogout}>
+                    <FaSignOutAlt aria-hidden="true" /> Logout
+                  </button>
                 </div>
               </div>
-              
-              <div className="has-mega-menu">
-                <Link to="/section/school-merch" className={isActive('/section/school-merch') ? 'active' : ''}>
-                  <FaShoppingBag className="nav-icon" />
-                  <span>Merchandise</span>
-                </Link>
-                
-                <div className="mega-menu-wrapper">
-                  <div className="mega-menu">
-                    <div className="mega-menu-column">
-                      <h3 className="mega-menu-title">Clothing</h3>
-                      <div className="mega-menu-links">
-                        <Link to="/section/school-merch?category=tshirts" className="mega-menu-link">T-Shirts</Link>
-                        <Link to="/section/school-merch?category=hoodies" className="mega-menu-link">Hoodies & Jackets</Link>
-                        <Link to="/section/school-merch?category=caps" className="mega-menu-link">Caps & Hats</Link>
-                        <Link to="/section/school-merch?category=sportswear" className="mega-menu-link">Sportswear</Link>
-                      </div>
-                    </div>
-                    <div className="mega-menu-column">
-                      <h3 className="mega-menu-title">Accessories</h3>
-                      <div className="mega-menu-links">
-                        <Link to="/section/school-merch?category=bags" className="mega-menu-link">Bags & Backpacks</Link>
-                        <Link to="/section/school-merch?category=lanyards" className="mega-menu-link">ID Lanyards</Link>
-                        <Link to="/section/school-merch?category=stationery" className="mega-menu-link">Stationery</Link>
-                        <Link to="/section/school-merch?category=pins" className="mega-menu-link">Pins & Badges</Link>
-                      </div>
-                    </div>
-                    <div className="mega-menu-column">
-                      <div className="mega-menu-featured">
-                        <img src="https://scontent.fmnl8-4.fna.fbcdn.net/v/t39.30808-6/469494258_1312368613537942_7637345218561107250_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGZdwsrrn9j9w_hudo4f1RPxGmVljdVT4TEaZWWN1VPhO3d_TEohAdlFJp3MhNxYxI3Lq9j_x-FgdqkNSJX1Znz&_nc_ohc=nj4P0ZQJSr4Q7kNvwFLWLfS&_nc_oc=AdmgbeWMGTECYctALTy37XJSJNoggFJjjcNVIoQhBJaEitSunP3-3Vi3gq9JW5RihMs&_nc_zt=23&_nc_ht=scontent.fmnl8-4.fna&_nc_gid=FGKeayGYXULW3yboVw_aSw&oh=00_AfHqvja8wD_kBOhtZecnPXC4TJ2HP2fka-Oe9geyVyLnng&oe=6816D954" alt="Featured Merch" />
-                        <h4>NU Bulldogs Pride Collection</h4>
-                        <p>Show your school spirit with our exclusive Bulldogs merchandise</p>
-                        <Link to="/section/school-merch?collection=pride" className="mega-menu-link">Shop Collection →</Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <Link to="/cart" className={isActive('/cart') ? 'active' : ''}>
-                <div className="cart-icon-container">
-                  <FaShoppingCart className="nav-icon" />
-                  <span>Cart</span>
-                  {cartCount > 0 && <div className="cart-badge">{cartCount}</div>}
-                </div>
-              </Link>
-              
-              <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
-                <FaUser className="nav-icon" />
-                <span>Account</span>
-              </Link>
-            </div>
-            
-            {/* Only show search form in desktop view */}
-            {!isMobileView && (
-              <div className="search-form">
-                <SearchBar />
+            ) : (
+              <div className="auth-links">
+                <Link to="/login" className="btn btn--ghost btn--sm">Sign In</Link>
+                <Link to="/signup" className="btn btn--primary btn--sm">Register</Link>
               </div>
             )}
-            
-            <div className="navbar-user" ref={userMenuRef}>
-              {user ? (
-                <>
-                  <button 
-                    className="user-profile-btn"
-                    onClick={toggleUserDropdown}
-                  >
-                    <span className="user-greeting">Welcome, {user.name.split(' ')[0]}</span>
-                    <FaUserCircle size={24} />
-                    <FaChevronDown size={12} style={{ opacity: 0.7 }} />
-                    {userDropdownOpen && (
-                      <div className="user-dropdown show">
-                        <div className="dropdown-item">
-                          <FaUserCircle className="icon" size={18} />
-                          <span>My Profile</span>
-                        </div>
-                        <div className="dropdown-item">
-                          <FaClipboardList className="icon" size={18} />
-                          <span>My Orders</span>
-                        </div>
-                        <div className="dropdown-item">
-                          <FaHeart className="icon" size={18} />
-                          <span>Wishlist</span>
-                        </div>
-                        <div className="dropdown-divider"></div>
-                        <div className="dropdown-item">
-                          <FaCog className="icon" size={18} />
-                          <span>Settings</span>
-                        </div>
-                        <div className="dropdown-item">
-                          <FaQuestionCircle className="icon" size={18} />
-                          <span>Help Center</span>
-                        </div>
-                        <div className="dropdown-divider"></div>
-                        <div 
-                          className="dropdown-item"
-                          onClick={handleLogout}
-                        >
-                          <FaSignOutAlt className="icon" size={18} />
-                          <span>Logout</span>
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                  <button className="logout-btn" onClick={handleLogout}>
-                    <FaSignOutAlt />
-                    <span>Logout</span>
-                  </button>
-                </>
-              ) : (
-                <div className="auth-links">
-                  <Link to="/login" className="auth-link">
-                    <span>Sign In</span>
-                  </Link>
-                  <Link to="/signup" className="auth-link register">
-                    <span>Register</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-            
-            <button className="search-toggle" onClick={toggleSearch}>
-              {searchOpen ? <FaTimes /> : <FaSearch />}
-            </button>
-            
-            <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
-              {mobileMenuOpen ? <FaTimes /> : <FaBars />}
+
+            <button
+              type="button"
+              className="header-icon-btn menu-toggle"
+              onClick={toggleMobileMenu}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-drawer"
+            >
+              {mobileMenuOpen ? <FaTimes aria-hidden="true" /> : <FaBars aria-hidden="true" />}
             </button>
           </div>
         </div>
-        
-        {/* Secondary Navbar - Shows only on desktop */}
-        {/* <div className="navbar-secondary">
-          <div className="navbar-secondary-links">
-            <a href="tel:+12345678" className="navbar-secondary-link">
-              <FaPhoneAlt size={10} /> Support: (123) 456-7890
-            </a>
-            <Link to="/stores" className="navbar-secondary-link">
-              <FaMapMarkerAlt size={10} /> Store Locations
-            </Link>
-            <Link to="/contact" className="navbar-secondary-link">
-              <FaEnvelope size={10} /> Contact Us
-            </Link>
-          </div>
-        </div> */}
-        
-        {/* Mobile Search Container - Only show in mobile view and when search is open */}
-        {isMobileView && searchOpen && (
-          <div className="mobile-search-container show">
-            <SearchBar />
+
+        {searchOpen && (
+          <div className="mobile-search">
+            <div className="container">
+              <SearchBar variant="nav" autoFocus />
+            </div>
           </div>
         )}
-      </nav>
-      
-      {/* Mobile Menu */}
-      <div className={`mobile-menu ${mobileMenuOpen ? 'show' : ''}`}>
-        <div className="mobile-menu-header">
+      </header>
+
+      {/* Mobile drawer */}
+      <div
+        className={`drawer-backdrop ${mobileMenuOpen ? 'is-open' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        id="mobile-drawer"
+        className={`mobile-drawer ${mobileMenuOpen ? 'is-open' : ''}`}
+        aria-label="Mobile menu"
+        aria-hidden={!mobileMenuOpen}
+        inert={!mobileMenuOpen}
+      >
+        <div className="mobile-drawer__header">
           {user ? (
-            <div>
-              <h3>Welcome, {user.name.split(' ')[0]}</h3>
-              <p>{user.email}</p>
+            <div className="mobile-drawer__user">
+              <span className="avatar" aria-hidden="true">{getInitials(user.name)}</span>
+              <div>
+                <strong>Welcome, {firstName}</strong>
+                <span>{user.email}</span>
+              </div>
             </div>
           ) : (
-            <h3>Menu</h3>
+            <strong>Menu</strong>
           )}
+          <button type="button" className="header-icon-btn" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
+            <FaTimes aria-hidden="true" />
+          </button>
         </div>
-        
-        <div className="mobile-menu-links">
-          <Link to="/" className="mobile-menu-link">
-            <FaHome className="icon" />
-            <span>Home</span>
-          </Link>
-          
-          <Link to="/section/uniforms" className="mobile-menu-link">
-            <FaTshirt className="icon" />
-            <span>Uniforms</span>
-          </Link>
-          
-          <Link to="/section/school-merch" className="mobile-menu-link">
-            <FaShoppingBag className="icon" />
-            <span>Merchandise</span>
-          </Link>
-          
-          <Link to="/cart" className="mobile-menu-link">
-            <FaShoppingCart className="icon" />
-            <span>Cart</span>
-            {cartCount > 0 && <div className="cart-badge mobile">{cartCount}</div>}
-          </Link>
-          
-          <Link to="/profile" className="mobile-menu-link">
-            <FaUser className="icon" />
-            <span>My Account</span>
-          </Link>
-          
-          <Link to="/wishlist" className="mobile-menu-link">
-            <FaHeart className="icon" />
-            <span>Wishlist</span>
-          </Link>
-          
-          <Link to="/orders" className="mobile-menu-link">
-            <FaClipboardList className="icon" />
-            <span>Orders</span>
-          </Link>
-        </div>
-        
-        <div className="mobile-menu-footer">
+
+        <nav className="mobile-drawer__links" aria-label="Mobile">
+          {NAV_LINKS.map((link) => {
+            const Icon = link.icon;
+            return (
+              <NavLink key={link.to} to={link.to} end={link.end} className="mobile-drawer__link">
+                <Icon aria-hidden="true" /> {link.label}
+              </NavLink>
+            );
+          })}
+          <div className="mobile-drawer__divider" />
+          <NavLink to="/cart" className="mobile-drawer__link">
+            <FaShoppingCart aria-hidden="true" /> Cart
+            {cartCount > 0 && <span className="count-badge count-badge--inline">{cartCount}</span>}
+          </NavLink>
+          <NavLink to="/wishlist" className="mobile-drawer__link">
+            <FaHeart aria-hidden="true" /> Saved Items
+            {favorites.length > 0 && <span className="count-badge count-badge--inline count-badge--muted">{favorites.length}</span>}
+          </NavLink>
+          <NavLink to="/profile" className="mobile-drawer__link">
+            <FaUserCircle aria-hidden="true" /> My Account &amp; Orders
+          </NavLink>
+        </nav>
+
+        <div className="mobile-drawer__footer">
           {!user ? (
-            <div className="auth-buttons">
-              <Link to="/login" className="auth-button signin-btn">Sign In</Link>
-              <Link to="/signup" className="auth-button register-btn">Register</Link>
+            <div className="mobile-drawer__auth">
+              <Link to="/login" className="btn btn--outline btn--block">Sign In</Link>
+              <Link to="/signup" className="btn btn--primary btn--block">Register</Link>
             </div>
           ) : (
-            <button className="auth-button register-btn" onClick={handleLogout}>
-              <FaSignOutAlt style={{ marginRight: '8px' }} /> Logout
+            <button type="button" className="btn btn--outline btn--block" onClick={handleLogout}>
+              <FaSignOutAlt aria-hidden="true" /> Logout
             </button>
           )}
-          
-          <p>© 2025 NU Bulldogz Exchange</p>
+          <p>© {new Date().getFullYear()} NU Bulldog Exchange</p>
         </div>
-      </div>
+      </aside>
     </>
   );
 };

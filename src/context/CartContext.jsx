@@ -1,4 +1,4 @@
-// src/context/cartContext.jsx
+// src/context/CartContext.jsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import uniforms from '../data/uniform';
 import schoolMerch from '../data/schoolMerch';
@@ -55,9 +55,10 @@ export const CartProvider = ({ children }) => {
       
       if (existingItemIndex >= 0) {
         // Update quantity if item exists
-        const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity += quantity;
-        return updatedItems;
+        // Copy the item instead of mutating it (StrictMode runs updaters twice)
+        return prevItems.map((item, index) =>
+          index === existingItemIndex ? { ...item, quantity: item.quantity + quantity } : item
+        );
       } else {
         // Add new item
         return [...prevItems, { id: productId, quantity }];

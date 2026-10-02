@@ -8,7 +8,11 @@ import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Wishlist from './pages/Wishlist';
+import NotFound from './pages/NotFound';
 import { CartProvider } from "./context/CartContext.jsx";
+import { FavoritesProvider } from './context/FavoritesContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
 
 
 
@@ -20,6 +24,10 @@ const routes = [
       {
         path: '',
         element: <Recommended />,
+      },
+      {
+        path: 'browse',
+        element: <Section />,
       },
       {
         path: 'section/:sectionId',
@@ -38,12 +46,20 @@ const routes = [
         element: <Profile />,
       },
       {
+        path: 'wishlist',
+        element: <Wishlist />,
+      },
+      {
         path: 'login',
         element: <Login />,
       },
       {
         path: 'signup',
         element: <Signup />,
+      },
+      {
+        path: '*',
+        element: <NotFound />,
       },
     ],
   },
@@ -54,7 +70,11 @@ const router = createBrowserRouter(routes);
 function App() {
   return (
     <CartProvider>
-      <RouterProvider router={router} />
+      <FavoritesProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </FavoritesProvider>
     </CartProvider>
   );
 }

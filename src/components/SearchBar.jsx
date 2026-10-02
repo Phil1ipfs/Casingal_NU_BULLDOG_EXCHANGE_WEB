@@ -1,278 +1,268 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FaSearch, 
-  FaTimes, 
-  FaHistory, 
-  FaArrowRight, 
-  FaTshirt, 
+import {
+  FaSearch,
+  FaTimes,
+  FaHistory,
+  FaArrowRight,
+  FaTshirt,
   FaShoppingBag,
   FaFire
 } from 'react-icons/fa';
-import uniforms from '../data/uniform';
-import schoolMerch from '../data/schoolMerch';
-
-// Combine all products for search
-const allProducts = [...uniforms, ...schoolMerch];
+import { allProducts, formatPrice, getSectionForItem, matchesQuery } from '../data/catalog';
+import ProductImage from './ProductImage';
 
 // Popular search terms
 const popularSearches = ['uniform', 'hoodie', 'nursing', 'lanyards', 'jacket'];
 
-const SearchBar = () => {
+const loadRecentSearches = () => {
+  try {
+    return JSON.parse(localStorage.getItem('nuRecentSearches') || '[]').slice(0, 5);
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Live product search with suggestions.
+ * - variant: "nav" (compact, header) | "hero" (large, homepage)
+ * - category: optional section id ("uniforms" | "school-merch") to scope results
+ */
+const SearchBar = ({ variant = 'nav', category = 'all', autoFocus = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
+  const [recentSearches, setRecentSearches] = useState(loadRecentSearches);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
-  
+
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const inputRef = useRef(null);
+  const timerRef = useRef(null);
+
+  const scopedProducts = category === 'all'
+    ? allProducts
+    : allProducts.filter((p) => getSectionForItem(p) === category);
+
+  const findResults = (term) => scopedProducts.filter((p) => matchesQuery(p, term)).slice(0, 5);
 
   useEffect(() => {
-    // Load recent searches from localStorage
-    const savedSearches = localStorage.getItem('nuRecentSearches');
-    if (savedSearches) {
-      setRecentSearches(JSON.parse(savedSearches).slice(0, 5));
-    }
-    
-    // Add click outside listener to close results
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowResults(false);
       }
     };
-    
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(timerRef.current);
     };
   }, []);
+
+  const saveRecentSearch = (term) => {
+    const updatedSearches = [
+      { term, timestamp: new Date().toISOString() },
+      ...recentSearches.filter((s) => s.term !== term),
+    ].slice(0, 5);
+    setRecentSearches(updatedSearches);
+    try {
+      localStorage.setItem('nuRecentSearches', JSON.stringify(updatedSearches));
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
+    clearTimeout(timerRef.current);
+
     if (value.length > 1) {
       setLoading(true);
-      
-      // Simulate search delay for smoother experience
-      setTimeout(() => {
-        // Filter products based on search term
-        const filteredResults = allProducts.filter(product => 
-          product.name.toLowerCase().includes(value.toLowerCase()) ||
-          product.description.toLowerCase().includes(value.toLowerCase())
-        ).slice(0, 5); // Limit to 5 results
-        
-        setSearchResults(filteredResults);
+      // Short debounce for a smoother experience
+      timerRef.current = setTimeout(() => {
+        setSearchResults(findResults(value));
         setShowResults(true);
         setLoading(false);
-      }, 300);
+      }, 200);
     } else {
-      setShowResults(false);
+      setLoading(false);
+      setSearchResults([]);
     }
   };
 
   const clearSearch = () => {
     setSearchTerm('');
+    setSearchResults([]);
     setShowResults(false);
-    inputRef.current.focus();
+    inputRef.current?.focus();
   };
 
   const handleProductClick = (product) => {
-    // Determine section based on product ID
-    const section = product.id.startsWith('u') ? 'uniforms' : 'school-merch';
-    
-    // Add to recent searches
-    const newSearch = {
-      term: product.name,
-      timestamp: new Date().toISOString()
-    };
-    
-    const updatedSearches = [newSearch, ...recentSearches.filter(s => s.term !== product.name)].slice(0, 5);
-    setRecentSearches(updatedSearches);
-    localStorage.setItem('nuRecentSearches', JSON.stringify(updatedSearches));
-    
-    // Navigate to product
-    navigate(`/item/${section}/${product.id}`);
-    clearSearch();
+    saveRecentSearch(product.name);
+    navigate(`/item/${getSectionForItem(product)}/${product.id}`);
+    setSearchTerm('');
+    setShowResults(false);
   };
 
+  // Enter: go to the Browse page filtered by the search term (and category).
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    
-    if (searchTerm.trim().length > 0) {
-      // Add to recent searches
-      const newSearch = {
-        term: searchTerm,
-        timestamp: new Date().toISOString()
-      };
-      
-      const updatedSearches = [newSearch, ...recentSearches.filter(s => s.term !== searchTerm)].slice(0, 5);
-      setRecentSearches(updatedSearches);
-      localStorage.setItem('nuRecentSearches', JSON.stringify(updatedSearches));
-      
-      // Navigate to search results page or first result
-      if (searchResults.length > 0) {
-        handleProductClick(searchResults[0]);
-      } else {
-        // If we had a dedicated search results page, we would navigate there
-        // For now, just alert the user
-        alert(`Searching for "${searchTerm}"...`);
-        clearSearch();
-      }
-    }
+    const term = searchTerm.trim();
+    const base = category === 'all' ? '/browse' : `/section/${category}`;
+
+    if (term.length > 0) saveRecentSearch(term);
+    navigate(term ? `${base}?q=${encodeURIComponent(term)}` : base);
+    setShowResults(false);
+    inputRef.current?.blur();
   };
 
-  const handleRecentSearchClick = (term) => {
+  const handleSuggestionClick = (term) => {
     setSearchTerm(term);
-    
-    // Trigger search with this term
-    const filteredResults = allProducts.filter(product => 
-      product.name.toLowerCase().includes(term.toLowerCase()) ||
-      product.description.toLowerCase().includes(term.toLowerCase())
-    ).slice(0, 5);
-    
-    setSearchResults(filteredResults);
+    setSearchResults(findResults(term));
     setShowResults(true);
-  };
-
-  const handlePopularSearchClick = (term) => {
-    setSearchTerm(term);
-    
-    // Trigger search with this term
-    const filteredResults = allProducts.filter(product => 
-      product.name.toLowerCase().includes(term.toLowerCase()) ||
-      product.description.toLowerCase().includes(term.toLowerCase())
-    ).slice(0, 5);
-    
-    setSearchResults(filteredResults);
-    setShowResults(true);
+    inputRef.current?.focus();
   };
 
   const handleFocus = () => {
     setFocused(true);
-    if (searchTerm.length > 1) {
-      setShowResults(true);
+    setShowResults(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setShowResults(false);
+    } else if (e.key === 'ArrowDown' && showResults) {
+      const first = searchRef.current?.querySelector('.search-dropdown button');
+      if (first) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   };
 
+  // Arrow-key navigation between dropdown options.
+  const handleDropdownKeyDown = (e) => {
+    if (!['ArrowDown', 'ArrowUp', 'Escape'].includes(e.key)) return;
+    e.preventDefault();
+    if (e.key === 'Escape') {
+      setShowResults(false);
+      inputRef.current?.focus();
+      return;
+    }
+    const options = [...searchRef.current.querySelectorAll('.search-dropdown button')];
+    const index = options.indexOf(document.activeElement);
+    const next = e.key === 'ArrowDown' ? index + 1 : index - 1;
+    if (next < 0) inputRef.current?.focus();
+    else options[Math.min(next, options.length - 1)]?.focus();
+  };
+
+  const hasTerm = searchTerm.length > 1;
+
   return (
-    <div className="search-bar-container" ref={searchRef}>
-      <form onSubmit={handleSearchSubmit} className="search-form">
-        <div className={`search-input-wrapper ${focused ? 'focused' : ''}`}>
-          <FaSearch className="search-icon" />
+    <div className={`search search--${variant}`} ref={searchRef}>
+      <form onSubmit={handleSearchSubmit} role="search">
+        <div className={`search__field ${focused ? 'is-focused' : ''}`}>
+          <FaSearch className="search__icon" aria-hidden="true" />
           <input
             ref={inputRef}
-            type="text"
-            placeholder="Search uniforms, merchandise, accessories..."
+            type="search"
+            placeholder={variant === 'hero' ? 'Search for uniforms, hoodies, lanyards...' : 'Search products...'}
+            aria-label="Search products"
             value={searchTerm}
             onChange={handleSearch}
             onFocus={handleFocus}
-            className="search-input"
+            onBlur={() => setFocused(false)}
+            onKeyDown={handleKeyDown}
+            className="search__input"
             autoComplete="off"
+            autoFocus={autoFocus}
           />
-          {loading && <div className="search-spinner"></div>}
+          {loading && <span className="search__spinner" aria-hidden="true" />}
           {searchTerm && (
-            <button type="button" className="clear-search" onClick={clearSearch}>
-              <FaTimes />
+            <button type="button" className="search__clear" onClick={clearSearch} aria-label="Clear search">
+              <FaTimes aria-hidden="true" />
+            </button>
+          )}
+          {variant === 'hero' && (
+            <button type="submit" className="btn btn--gold search__submit">
+              Search
             </button>
           )}
         </div>
-        
+
         {showResults && (
-          <div className="search-dropdown">
-            {searchResults.length > 0 ? (
+          <div className="search-dropdown" onKeyDown={handleDropdownKeyDown}>
+            {hasTerm && searchResults.length > 0 && (
               <>
-                <div className="search-dropdown-header">
-                  <span>Search Results</span>
+                <div className="search-dropdown__header">Products</div>
+                <div className="search-dropdown__list">
+                  {searchResults.map((product) => {
+                    const isUniform = getSectionForItem(product) === 'uniforms';
+                    return (
+                      <button
+                        type="button"
+                        key={product.id}
+                        className="search-result"
+                        onClick={() => handleProductClick(product)}
+                      >
+                        <ProductImage src={product.imageUrl} alt={product.name} className="search-result__img" />
+                        <span className="search-result__details">
+                          <span className="search-result__title">{product.name}</span>
+                          <span className="search-result__meta">
+                            <span className={`chip chip--${isUniform ? 'blue' : 'gold'}`}>
+                              {isUniform ? <FaTshirt aria-hidden="true" /> : <FaShoppingBag aria-hidden="true" />}
+                              {isUniform ? 'Uniform' : 'Merch'}
+                            </span>
+                            <span className="search-result__price">{formatPrice(product.price)}</span>
+                          </span>
+                        </span>
+                        <FaArrowRight className="search-result__arrow" aria-hidden="true" />
+                      </button>
+                    );
+                  })}
                 </div>
-                
-                <div className="search-results-list">
-                  {searchResults.map((product) => (
-                    <div 
-                      key={product.id} 
-                      className="search-result-item"
-                      onClick={() => handleProductClick(product)}
-                    >
-                      <div className="result-image-container">
-                        <img src={product.imageUrl} alt={product.name} className="result-image" />
-                        {product.id.startsWith('u') ? (
-                          <div className="result-category uniform">
-                            <FaTshirt size={10} /> Uniform
-                          </div>
-                        ) : (
-                          <div className="result-category merch">
-                            <FaShoppingBag size={10} /> Merch
-                          </div>
-                        )}
-                      </div>
-                      <div className="result-details">
-                        <h4 className="result-title">{product.name}</h4>
-                        <p className="result-price">₱{product.price.toFixed(2)}</p>
-                      </div>
-                      <div className="result-action">
-                        <FaArrowRight />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <button type="submit" className="search-dropdown__all">
+                  See all results for “{searchTerm}” <FaArrowRight aria-hidden="true" />
+                </button>
               </>
-            ) : (
-              searchTerm.length > 1 && (
-                <div className="no-results">
-                  <p>No products found for "{searchTerm}"</p>
-                  <p className="no-results-suggestion">Try different keywords or browse categories</p>
-                </div>
-              )
             )}
-            
-            {/* Show recent searches if no search term or results */}
-            {(!searchTerm || searchTerm.length <= 1) && recentSearches.length > 0 && (
+
+            {hasTerm && !loading && searchResults.length === 0 && (
+              <div className="search-dropdown__empty">
+                <p>No products found for “{searchTerm}”</p>
+                <span>Try different keywords or browse categories</span>
+              </div>
+            )}
+
+            {!hasTerm && recentSearches.length > 0 && (
               <>
-                <div className="search-dropdown-header">
-                  <span>Recent Searches</span>
-                </div>
-                <div className="search-suggestion-list">
+                <div className="search-dropdown__header">Recent searches</div>
+                <div className="search-dropdown__chips">
                   {recentSearches.map((search, index) => (
-                    <div 
-                      key={index}
-                      className="search-suggestion-item"
-                      onClick={() => handleRecentSearchClick(search.term)}
-                    >
-                      <FaHistory className="suggestion-icon" />
-                      <span>{search.term}</span>
-                    </div>
+                    <button type="button" key={index} className="suggestion" onClick={() => handleSuggestionClick(search.term)}>
+                      <FaHistory aria-hidden="true" /> {search.term}
+                    </button>
                   ))}
                 </div>
               </>
             )}
-            
-            {/* Popular searches */}
-            {(!searchTerm || searchTerm.length <= 1) && (
+
+            {!hasTerm && (
               <>
-                <div className="search-dropdown-header">
-                  <span>Popular Searches</span>
-                </div>
-                <div className="search-suggestion-list">
-                  {popularSearches.map((term, index) => (
-                    <div 
-                      key={index}
-                      className="search-suggestion-item"
-                      onClick={() => handlePopularSearchClick(term)}
-                    >
-                      <FaFire className="suggestion-icon popular" />
-                      <span>{term}</span>
-                    </div>
+                <div className="search-dropdown__header">Popular searches</div>
+                <div className="search-dropdown__chips">
+                  {popularSearches.map((term) => (
+                    <button type="button" key={term} className="suggestion" onClick={() => handleSuggestionClick(term)}>
+                      <FaFire className="suggestion__hot" aria-hidden="true" /> {term}
+                    </button>
                   ))}
                 </div>
               </>
             )}
-            
-            <div className="search-dropdown-footer">
-              <p>Press Enter to search</p>
-            </div>
+
+            <div className="search-dropdown__footer">Press Enter to search</div>
           </div>
         )}
       </form>

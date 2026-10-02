@@ -16,6 +16,7 @@ import {
   FaShieldAlt
 } from 'react-icons/fa';
 import logo from '../assets/nubdexchange_logo.png';
+import AuthShell from '../components/AuthShell';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -222,227 +223,238 @@ const Signup = () => {
     }, 1500);
   };
 
-  return (
-    <div className="auth-container">
-      <div className="form-container signup-form">
-        <div className="form-logo">
-          <img src={logo} alt="NU Bulldogs Exchange" />
-          <h2>NU Bulldogz Exchange</h2>
-        </div>
+  const strength = getPasswordStrengthLabel();
 
-        <h1>{step === 1 ? 'Create Your Account' : 'Student Information'}</h1>
-        
-        <div className="progress-steps">
-          <div className={`step ${step >= 1 ? 'active' : ''}`}>
-            <div className="step-number">{step > 1 ? <FaCheck /> : 1}</div>
-            <div className="step-label">Account Details</div>
-          </div>
-          <div className="step-connector"></div>
-          <div className={`step ${step >= 2 ? 'active' : ''}`}>
-            <div className="step-number">2</div>
-            <div className="step-label">Student Info</div>
-          </div>
-        </div>
-        
-        <form onSubmit={handleSubmit} noValidate>
-          {step === 1 ? (
-            // Step 1 - Account Details
-            <>
-              <div className="form-row">
-                <div className={`form-group ${formErrors.firstName ? 'error' : ''}`}>
-                  <label htmlFor="firstName">
-                    <FaUser className="input-icon" /> First Name
-                  </label>
+  return (
+    <AuthShell
+      heading="Join the NU Bulldog Exchange"
+      message="Get access to exclusive NU uniforms, merchandise, and student discounts."
+      features={[
+        { icon: FaIdCard, text: 'Student ID verification' },
+        { icon: FaUser, text: 'Personalized recommendations' },
+        { icon: FaSchool, text: 'Campus delivery options' },
+      ]}
+    >
+      <div className="auth-card__head">
+        <img src={logo} alt="" className="auth-card__logo" />
+        <h1>{step === 1 ? 'Create your account' : 'Student information'}</h1>
+        <p>{step === 1 ? 'Start with your account details.' : 'Tell us about your NU enrollment.'}</p>
+      </div>
+
+      <ol className="steps" aria-label="Registration progress">
+        <li className={`steps__item ${step >= 1 ? 'is-active' : ''} ${step > 1 ? 'is-done' : ''}`} aria-current={step === 1 ? 'step' : undefined}>
+          <span className="steps__num">{step > 1 ? <FaCheck aria-hidden="true" /> : 1}</span>
+          <span className="steps__label">Account Details</span>
+        </li>
+        <li className="steps__line" aria-hidden="true" />
+        <li className={`steps__item ${step >= 2 ? 'is-active' : ''}`} aria-current={step === 2 ? 'step' : undefined}>
+          <span className="steps__num">2</span>
+          <span className="steps__label">Student Info</span>
+        </li>
+      </ol>
+
+      <form onSubmit={handleSubmit} noValidate className="form">
+        {step === 1 ? (
+          // Step 1 - Account Details
+          <>
+            <div className="form__grid">
+              <div className={`field ${formErrors.firstName ? 'has-error' : ''}`}>
+                <label htmlFor="firstName">First Name</label>
+                <div className="field__control">
+                  <FaUser className="field__icon" aria-hidden="true" />
                   <input
                     id="firstName"
                     name="firstName"
                     type="text"
+                    autoComplete="given-name"
                     placeholder="Enter first name"
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className={formErrors.firstName ? 'error-input' : ''}
+                    aria-invalid={!!formErrors.firstName}
                     disabled={isLoading}
                   />
-                  {formErrors.firstName && <div className="error-message">{formErrors.firstName}</div>}
                 </div>
-                
-                <div className={`form-group ${formErrors.lastName ? 'error' : ''}`}>
-                  <label htmlFor="lastName">
-                    <FaUser className="input-icon" /> Last Name
-                  </label>
+                {formErrors.firstName && <div className="field__error" role="alert">{formErrors.firstName}</div>}
+              </div>
+
+              <div className={`field ${formErrors.lastName ? 'has-error' : ''}`}>
+                <label htmlFor="lastName">Last Name</label>
+                <div className="field__control">
+                  <FaUser className="field__icon" aria-hidden="true" />
                   <input
                     id="lastName"
                     name="lastName"
                     type="text"
+                    autoComplete="family-name"
                     placeholder="Enter last name"
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className={formErrors.lastName ? 'error-input' : ''}
+                    aria-invalid={!!formErrors.lastName}
                     disabled={isLoading}
                   />
-                  {formErrors.lastName && <div className="error-message">{formErrors.lastName}</div>}
                 </div>
+                {formErrors.lastName && <div className="field__error" role="alert">{formErrors.lastName}</div>}
               </div>
-              
-              <div className={`form-group ${formErrors.email ? 'error' : ''}`}>
-                <label htmlFor="email">
-                  <FaEnvelope className="input-icon" /> Email Address
-                </label>
+            </div>
+
+            <div className={`field ${formErrors.email ? 'has-error' : ''}`}>
+              <label htmlFor="email">Email Address</label>
+              <div className="field__control">
+                <FaEnvelope className="field__icon" aria-hidden="true" />
                 <input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="Enter your NU email (e.g., student@nu.edu.ph)"
+                  autoComplete="email"
+                  placeholder="student@nu.edu.ph"
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className={formErrors.email ? 'error-input' : ''}
+                  aria-invalid={!!formErrors.email}
                   disabled={isLoading}
                 />
-                {formErrors.email && <div className="error-message">{formErrors.email}</div>}
               </div>
-              
-              <div className={`form-group ${formErrors.password ? 'error' : ''}`}>
-                <label htmlFor="password">
-                  <FaLock className="input-icon" /> Password
-                </label>
-                <div className="password-input-container">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className={formErrors.password ? 'error-input' : ''}
-                    disabled={isLoading}
-                  />
-                  <button 
-                    type="button" 
-                    className="password-toggle" 
-                    onClick={() => togglePasswordVisibility('password')}
-                    tabIndex="-1"
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                {formData.password && (
-                  <div className="password-strength-container">
-                    <div className="password-strength-meter">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <div 
-                          key={level} 
-                          className={`strength-segment ${passwordStrength >= level ? 'active' : ''}`}
-                          style={{ 
-                            backgroundColor: passwordStrength >= level 
-                              ? getPasswordStrengthLabel().color 
-                              : '#e0e0e0' 
-                          }}
-                        ></div>
-                      ))}
-                    </div>
-                    <div className="strength-label">
-                      <FaShieldAlt style={{ marginRight: '5px', color: getPasswordStrengthLabel().color }} />
-                      <span style={{ color: getPasswordStrengthLabel().color }}>
-                        {getPasswordStrengthLabel().label}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {formErrors.password && <div className="error-message">{formErrors.password}</div>}
-              </div>
-              
-              <div className={`form-group ${formErrors.confirmPassword || formErrors.match ? 'error' : ''}`}>
-                <label htmlFor="confirmPassword">
-                  <FaLock className="input-icon" /> Confirm Password
-                </label>
-                <div className="password-input-container">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className={(formErrors.confirmPassword || formErrors.match) ? 'error-input' : ''}
-                    disabled={isLoading}
-                  />
-                  <button 
-                    type="button" 
-                    className="password-toggle" 
-                    onClick={() => togglePasswordVisibility('confirm')}
-                    tabIndex="-1"
-                  >
-                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                {formErrors.confirmPassword && <div className="error-message">{formErrors.confirmPassword}</div>}
-                {formErrors.match && <div className="error-message">{formErrors.match}</div>}
-              </div>
-              
-              <button 
-                type="button" 
-                className="auth-button next-button"
-                onClick={handleNextStep}
-                disabled={isLoading}
-              >
-                <span>Continue</span>
-                <FaArrowRight style={{ marginLeft: '8px' }} />
-              </button>
-              
-              <div className="form-divider">
-                <span>OR</span>
-              </div>
-              
-              <div className="social-login">
-                <button 
-                  type="button"
-                  className="google-btn"
-                  onClick={handleGoogleSignup}
+              {formErrors.email ? (
+                <div className="field__error" role="alert">{formErrors.email}</div>
+              ) : (
+                <div className="field__hint">Use your NU email address</div>
+              )}
+            </div>
+
+            <div className={`field ${formErrors.password ? 'has-error' : ''}`}>
+              <label htmlFor="password">Password</label>
+              <div className="field__control">
+                <FaLock className="field__icon" aria-hidden="true" />
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  aria-invalid={!!formErrors.password}
                   disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="field__toggle"
+                  onClick={() => togglePasswordVisibility('password')}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  <FaGoogle />
-                  <span>Sign up with Google</span>
+                  {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
                 </button>
               </div>
-            </>
-          ) : (
-            // Step 2 - Student Information
-            <>
-              <div className="form-row">
-                <div className={`form-group ${formErrors.studentId ? 'error' : ''}`}>
-                  <label htmlFor="studentId">
-                    <FaIdCard className="input-icon" /> Student ID
-                  </label>
+              {formData.password && (
+                <div className="strength">
+                  <div className="strength__meter" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <span
+                        key={level}
+                        className="strength__seg"
+                        style={{
+                          backgroundColor: passwordStrength >= level ? strength.color : undefined
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className="strength__label">
+                    <FaShieldAlt aria-hidden="true" style={{ color: strength.color }} />
+                    Password strength: {strength.label}
+                  </span>
+                </div>
+              )}
+              {formErrors.password && <div className="field__error" role="alert">{formErrors.password}</div>}
+            </div>
+
+            <div className={`field ${formErrors.confirmPassword || formErrors.match ? 'has-error' : ''}`}>
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <div className="field__control">
+                <FaLock className="field__icon" aria-hidden="true" />
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  aria-invalid={!!(formErrors.confirmPassword || formErrors.match)}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="field__toggle"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                </button>
+              </div>
+              {formErrors.confirmPassword && <div className="field__error" role="alert">{formErrors.confirmPassword}</div>}
+              {formErrors.match && <div className="field__error" role="alert">{formErrors.match}</div>}
+            </div>
+
+            <button
+              type="button"
+              className="btn btn--primary btn--lg btn--block"
+              onClick={handleNextStep}
+              disabled={isLoading}
+            >
+              <span>Continue</span>
+              <FaArrowRight aria-hidden="true" />
+            </button>
+
+            <div className="divider-text"><span>OR</span></div>
+
+            <button
+              type="button"
+              className="btn btn--outline btn--lg btn--block"
+              onClick={handleGoogleSignup}
+              disabled={isLoading}
+            >
+              <FaGoogle aria-hidden="true" />
+              <span>Sign up with Google</span>
+            </button>
+          </>
+        ) : (
+          // Step 2 - Student Information
+          <>
+            <div className="form__grid">
+              <div className={`field ${formErrors.studentId ? 'has-error' : ''}`}>
+                <label htmlFor="studentId">Student ID</label>
+                <div className="field__control">
+                  <FaIdCard className="field__icon" aria-hidden="true" />
                   <input
                     id="studentId"
                     name="studentId"
                     type="text"
-                    placeholder="Enter student ID (e.g., 2023-123456)"
+                    placeholder="e.g., 2023-123456"
                     value={formData.studentId}
                     onChange={handleChange}
                     required
-                    className={formErrors.studentId ? 'error-input' : ''}
+                    aria-invalid={!!formErrors.studentId}
                     disabled={isLoading}
                   />
-                  {formErrors.studentId && <div className="error-message">{formErrors.studentId}</div>}
                 </div>
-                
-                <div className={`form-group ${formErrors.course ? 'error' : ''}`}>
-                  <label htmlFor="course">
-                    <FaGraduationCap className="input-icon" /> Course/Program
-                  </label>
+                {formErrors.studentId && <div className="field__error" role="alert">{formErrors.studentId}</div>}
+              </div>
+
+              <div className={`field ${formErrors.course ? 'has-error' : ''}`}>
+                <label htmlFor="course">Course/Program</label>
+                <div className="field__control">
+                  <FaGraduationCap className="field__icon" aria-hidden="true" />
                   <select
                     id="course"
                     name="course"
                     value={formData.course}
                     onChange={handleChange}
                     required
-                    className={formErrors.course ? 'error-input' : ''}
+                    aria-invalid={!!formErrors.course}
                     disabled={isLoading}
                   >
                     <option value="">Select your course</option>
@@ -455,86 +467,66 @@ const Signup = () => {
                     <option value="BSA">BS Accountancy</option>
                     <option value="BSCrim">BS Criminology</option>
                   </select>
-                  {formErrors.course && <div className="error-message">{formErrors.course}</div>}
                 </div>
+                {formErrors.course && <div className="field__error" role="alert">{formErrors.course}</div>}
               </div>
-              
-              <div className={`form-terms ${formErrors.terms ? 'error' : ''}`}>
-                <input 
-                  type="checkbox" 
-                  id="terms" 
+            </div>
+
+            <div className={`field ${formErrors.terms ? 'has-error' : ''}`}>
+              <label className="checkbox checkbox--top">
+                <input
+                  type="checkbox"
+                  id="terms"
                   checked={acceptTerms}
                   onChange={() => setAcceptTerms(!acceptTerms)}
                   disabled={isLoading}
                 />
-                <label htmlFor="terms">
-                  I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>, and confirm that I am a National University student.
-                </label>
-                {formErrors.terms && <div className="error-message">{formErrors.terms}</div>}
-              </div>
-              
-              <div className="form-buttons">
-                <button 
-                  type="button" 
-                  className="back-button"
-                  onClick={handlePrevStep}
-                  disabled={isLoading}
-                >
-                  <FaArrowLeft style={{ marginRight: '5px' }} /> Back
-                </button>
-                
-                <button 
-                  type="submit" 
-                  className={`auth-button ${isLoading ? 'loading' : ''} ${registrationStatus === 'success' ? 'success' : ''}`}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="spinner"></span>
-                      <span>Creating Account...</span>
-                    </>
-                  ) : registrationStatus === 'success' ? (
-                    <>
-                      <FaCheck style={{ marginRight: '8px' }} />
-                      <span>Account Created!</span>
-                    </>
-                  ) : (
-                    <span>Create Account</span>
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-        </form>
-        
-        <div className="form-footer">
-          <p>Already have an account? <Link to="/login">Sign In</Link></p>
-        </div>
-      </div>
-      
-      <div className="auth-banner">
-        <div className="auth-overlay">
-          <h2>Join the NU Bulldogz Exchange</h2>
-          <p>Get access to exclusive NU uniforms, merchandise, and student discounts.</p>
-          
-          <div className="auth-features">
-            <div className="feature-item">
-              <FaIdCard className="feature-icon" />
-              <span>Student ID verification</span>
+                <span>
+                  I agree to the <a href="#" className="text-link">Terms & Conditions</a> and <a href="#" className="text-link">Privacy Policy</a>, and confirm that I am a National University student.
+                </span>
+              </label>
+              {formErrors.terms && <div className="field__error" role="alert">{formErrors.terms}</div>}
             </div>
-            <div className="feature-item">
-              <FaUser className="feature-icon" />
-              <span>Personalized recommendations</span>
+
+            <div className="form__actions">
+              <button
+                type="button"
+                className="btn btn--outline btn--lg"
+                onClick={handlePrevStep}
+                disabled={isLoading}
+              >
+                <FaArrowLeft aria-hidden="true" /> Back
+              </button>
+
+              <button
+                type="submit"
+                className={`btn btn--primary btn--lg ${registrationStatus === 'success' ? 'btn--success' : ''}`}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="spinner" aria-hidden="true"></span>
+                    <span>Creating Account...</span>
+                  </>
+                ) : registrationStatus === 'success' ? (
+                  <>
+                    <FaCheck aria-hidden="true" />
+                    <span>Account Created!</span>
+                  </>
+                ) : (
+                  <span>Create Account</span>
+                )}
+              </button>
             </div>
-            <div className="feature-item">
-              <FaSchool className="feature-icon" />
-              <span>Campus delivery options</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </>
+        )}
+      </form>
+
+      <p className="auth-card__foot">
+        Already have an account? <Link to="/login" className="text-link">Sign In</Link>
+      </p>
+    </AuthShell>
   );
 };
 
-export default Signup; 
+export default Signup;
